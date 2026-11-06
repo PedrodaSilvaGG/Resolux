@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#081225" />
+  <meta name="description" content="Resolux — diagnóstico de maturidade digital e plano técnico de boas práticas para empresas." />
+  <title>Resolux | Diagnóstico de Maturidade Digital</title>
+
+  <!-- TailwindCSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons via CDN -->
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e8eef8;
+      --muted: #9aa9bf;
+      --panel: rgba(15, 29, 52, .78);
+      --line: rgba(148, 163, 184, .16);
+      --cyan: #4dd7e8;
+      --blue: #648bff;
+      --green: #43d7a2;
+      --amber: #f6bd60;
+      --red: #fb7185;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 4%, rgba(38, 113, 161, .22), transparent 27rem),
+        radial-gradient(circle at 92% 18%, rgba(79, 70, 229, .17), transparent 30rem),
+        #071020;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .glass {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 18px 55px rgba(0,0,0,.18);
+      backdrop-filter: blur(16px);
+    }
+    .eyebrow { color: #77dce8; letter-spacing: .16em; text-transform: uppercase; font-size: .68rem; font-weight: 800; }
+    .field {
+      width: 100%; border: 1px solid rgba(148,163,184,.23); border-radius: .85rem;
+      background: rgba(5, 14, 29, .72); color: #edf5ff; padding: .78rem .9rem; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .field:focus { border-color: rgba(77,215,232,.75); box-shadow: 0 0 0 3px rgba(77,215,232,.12); }
+    .field option { background: #0b1730; color: #eef5ff; }
+    .question-card { border: 1px solid rgba(148,163,184,.14); background: rgba(7,18,36,.56); border-radius: 1rem; padding: 1rem; }
+    .option-label {
+      display: flex; gap: .72rem; align-items: flex-start; padding: .72rem .78rem; border-radius: .75rem;
+      border: 1px solid rgba(148,163,184,.13); background: rgba(15,29,52,.55); cursor: pointer;
+      transition: .18s ease; min-height: 3.2rem;
+    }
+    .option-label:hover { border-color: rgba(77,215,232,.45); background: rgba(22,53,76,.55); }
+    .option-label:has(input:checked) { border-color: rgba(77,215,232,.82); background: rgba(24,87,105,.24); box-shadow: inset 0 0 0 1px rgba(77,215,232,.15); }
+    .option-label input { margin-top: .2rem; accent-color: #4dd7e8; flex: 0 0 auto; }
+    .pillar-icon { width: 2.65rem; height: 2.65rem; border-radius: .85rem; display: grid; place-items: center; background: rgba(77,215,232,.1); color: #75e2ed; border: 1px solid rgba(77,215,232,.18); }
+    .metric-card { background: linear-gradient(145deg, rgba(20,38,65,.94), rgba(10,23,43,.84)); border: 1px solid rgba(148,163,184,.15); border-radius: 1.15rem; }
+    .progress-track { height: .45rem; border-radius: 999px; background: rgba(148,163,184,.16); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: inherit; transition: width .7s ease; }
+    .tag { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .6rem; font-size: .7rem; border-radius: 999px; border: 1px solid rgba(148,163,184,.2); background: rgba(148,163,184,.08); color: #cbd5e1; }
+    .recommendation { border: 1px solid rgba(148,163,184,.14); background: rgba(8,20,39,.64); border-radius: .9rem; padding: 1rem; }
+    .recommendation + .recommendation { margin-top: .65rem; }
+    .btn-primary { color: #061522; background: linear-gradient(110deg, #66e0e8, #74a8ff); box-shadow: 0 9px 28px rgba(69,185,218,.18); }
+    .btn-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
+    .btn-secondary { border: 1px solid rgba(148,163,184,.25); background: rgba(15,29,52,.65); color: #dce8f7; }
+    .btn-secondary:hover { border-color: rgba(77,215,232,.55); background: rgba(22,53,76,.7); }
+    button { transition: .18s ease; }
+    .status-critical { color: #fda4af; background: rgba(244,63,94,.12); border-color: rgba(244,63,94,.28); }
+    .status-transition { color: #fcd38d; background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.28); }
+    .status-structured { color: #93c5fd; background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.28); }
+    .status-leader { color: #86efc4; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.28); }
+    .empty-state { border: 1px dashed rgba(148,163,184,.28); background: rgba(8,20,39,.42); }
+    .chart-wrap { position: relative; height: 310px; width: 100%; }
+    .print-only { display: none; }
+    @media (max-width: 640px) { .chart-wrap { height: 270px; } }
+    @media print {
+      :root { color-scheme: light; }
+      @page { size: A4; margin: 14mm; }
+      body { background: #fff !important; color: #172033 !important; font-size: 10pt; }
+      .no-print, header .header-actions, #assessmentForm, #emptyState, footer .privacy-note { display: none !important; }
+      #resultsSection { display: block !important; margin-top: 0 !important; }
+      #resultsContent { display: block !important; }
+      .glass, .metric-card, .recommendation, .question-card { background: #fff !important; color: #172033 !important; box-shadow: none !important; border: 1px solid #d8dee8 !important; break-inside: avoid; }
+      .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400, .text-white { color: #172033 !important; }
+      .text-cyan-200, .text-cyan-300, .text-emerald-300, .text-amber-300, .text-blue-300 { color: #155e75 !important; }
+      .eyebrow { color: #0e7490 !important; }
+      .tag { color: #334155 !important; background: #f1f5f9 !important; border-color: #cbd5e1 !important; }
+      .recommendation p, .recommendation li { color: #334155 !important; }
+      .progress-track { background: #e2e8f0 !important; }
+      .chart-wrap { height: 250px; }
+      .print-only { display: block !important; }
+      a { color: inherit !important; text-decoration: none !important; }
+      footer { color: #475569 !important; border-color: #cbd5e1 !important; }
+      .metric-card { margin-bottom: 8px; }
+      #recommendationsGrid { display: block !important; }
+      #recommendationsGrid > article { margin-bottom: 12px; }
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+  <header class="relative overflow-hidden border-b border-slate-700/40">
+    <div class="absolute inset-0 opacity-40 pointer-events-none" aria-hidden="true">
+      <div class="absolute -top-28 right-8 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl"></div>
+      <div class="absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl"></div>
+    </div>
+    <div class="relative mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:px-10">
+      <div class="flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-center gap-3">
+          <div class="grid h-12 w-12 place-items-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10 text-cyan-200">
+            <i data-lucide="orbit" class="h-7 w-7"></i>
+          </div>
+          <div>
+            <div class="text-2xl font-black tracking-tight text-white">resolux<span class="text-cyan-300">.</span></div>
+            <div class="text-[.68rem] font-semibold uppercase tracking-[.2em] text-slate-400">Digital readiness intelligence</div>
+          </div>
+        </div>
+        <div class="header-actions flex flex-wrap items-center gap-2">
+          <button id="demoButton" type="button" class="btn-secondary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold">
+            <i data-lucide="flask-conical" class="h-4 w-4"></i> Carregar Caso Exemplo (Demo)
+          </button>
+          <button id="printButtonTop" type="button" class="btn-secondary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold" disabled>
+            <i data-lucide="file-down" class="h-4 w-4"></i> Exportar laudo PDF
+          </button>
+        </div>
+      </div>
+      <div class="grid gap-8 pb-9 pt-10 lg:grid-cols-[1.12fr_.88fr] lg:items-end">
+        <div>
+          <div class="eyebrow mb-3">Diagnóstico executivo · Transformação digital</div>
+          <h1 class="max-w-3xl text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">Sua operação, pronta para o <span class="bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">próximo nível digital.</span></h1>
+          <p class="mt-5 max-w-2xl text-base leading-7 text-slate-300">Avalie a maturidade da sua empresa em quatro pilares essenciais e receba um plano de boas práticas com prioridades técnicas para evoluir com segurança.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-cyan-200">04</div><div class="mt-1 text-xs text-slate-400">Pilares avaliados</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-cyan-200">08</div><div class="mt-1 text-xs text-slate-400">Questões estratégicas</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-cyan-200">0–100</div><div class="mt-1 text-xs text-slate-400">Índice de prontidão</div></div>
+          <div class="glass rounded-2xl p-4"><div class="text-2xl font-black text-cyan-200">100%</div><div class="mt-1 text-xs text-slate-400">Processamento local</div></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-5 py-9 sm:px-8 lg:px-10">
+    <section id="assessmentSection" class="grid gap-7 lg:grid-cols-[minmax(0,1.06fr)_minmax(330px,.94fr)] lg:items-start">
+      <div id="assessmentForm" class="glass rounded-3xl p-5 sm:p-7">
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <div class="eyebrow">01 / Coleta de informações</div>
+            <h2 class="mt-2 text-2xl font-bold text-white">Diagnóstico da empresa</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-400">Preencha os dados e selecione a alternativa que melhor representa a realidade atual. Respostas mais maduras recebem maior pontuação.</p>
+          </div>
+          <div class="hidden rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-cyan-200 sm:block"><i data-lucide="clipboard-check" class="h-6 w-6"></i></div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block sm:col-span-2"><span class="mb-2 block text-sm font-semibold text-slate-200">Nome da empresa <span class="text-rose-300">*</span></span><input id="companyName" class="field" type="text" maxlength="100" placeholder="Ex.: Aurora Comércio e Serviços" required /></label>
+          <label class="block"><span class="mb-2 block text-sm font-semibold text-slate-200">Setor <span class="text-rose-300">*</span></span>
+            <select id="companySector" class="field" required>
+              <option value="">Selecione o setor</option><option>Comércio / Varejo</option><option>Indústria</option><option>Serviços</option><option>Tecnologia</option><option>Saúde</option><option>Educação</option><option>Logística</option><option>Financeiro</option><option>Agropecuária</option><option>Outro</option>
+            </select>
+          </label>
+          <label class="block"><span class="mb-2 block text-sm font-semibold text-slate-200">Porte da empresa <span class="text-rose-300">*</span></span>
+            <select id="companySize" class="field" required><option value="">Selecione o porte</option><option>Microempresa</option><option>Pequena empresa</option><option>Empresa de médio porte</option><option>Empresa de grande porte</option></select>
+          </label>
+        </div>
+
+        <div class="my-7 flex items-center gap-3"><div class="h-px flex-1 bg-slate-700/70"></div><span class="text-xs font-bold uppercase tracking-[.16em] text-slate-500">Avaliação dos quatro pilares</span><div class="h-px flex-1 bg-slate-700/70"></div></div>
+        <div id="questionsContainer" class="space-y-7"></div>
+        <div class="mt-8 flex flex-col gap-3 border-t border-slate-700/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs leading-5 text-slate-500"><i data-lucide="info" class="mr-1 inline h-3.5 w-3.5"></i> São 8 respostas obrigatórias. Cada questão vale de 0 a 3 pontos.</p>
+          <button id="runDiagnosisButton" type="button" class="btn-primary inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-bold">
+            Gerar diagnóstico <i data-lucide="arrow-right" class="h-4 w-4"></i>
+          </button>
+        </div>
+        <p id="formError" class="mt-3 hidden rounded-lg border border-rose-400/20 bg-rose-400/10 px-3 py-2 text-sm text-rose-200" role="alert"></p>
+      </div>
+
+      <aside class="space-y-5">
+        <div class="glass rounded-3xl p-6">
+          <div class="eyebrow">Metodologia Resolux</div>
+          <h3 class="mt-2 text-xl font-bold text-white">Como a pontuação funciona</h3>
+          <p class="mt-2 text-sm leading-6 text-slate-400">Cada resposta recebe de 0 a 3 pontos. A nota de cada pilar é normalizada para uma escala de 0 a 100. O score geral é a média simples dos quatro pilares.</p>
+          <div class="mt-5 space-y-3">
+            <div class="flex items-center justify-between gap-3"><span class="tag status-critical">0–39 · Crítico</span><span class="text-xs text-slate-400">Fundamentos urgentes</span></div>
+            <div class="flex items-center justify-between gap-3"><span class="tag status-transition">40–59 · Em Transição</span><span class="text-xs text-slate-400">Evolução inicial</span></div>
+            <div class="flex items-center justify-between gap-3"><span class="tag status-structured">60–79 · Estruturado</span><span class="text-xs text-slate-400">Processos consistentes</span></div>
+            <div class="flex items-center justify-between gap-3"><span class="tag status-leader">80–100 · Líder Digital</span><span class="text-xs text-slate-400">Melhoria contínua</span></div>
+          </div>
+        </div>
+        <div class="glass rounded-3xl p-6">
+          <div class="flex items-center gap-3"><div class="pillar-icon"><i data-lucide="shield-check" class="h-5 w-5"></i></div><div><div class="eyebrow">Privacidade</div><h3 class="font-bold text-white">Seus dados ficam no navegador</h3></div></div>
+          <p class="mt-3 text-sm leading-6 text-slate-400">O diagnóstico e os cálculos são executados localmente. Este aplicativo não possui servidor, banco de dados ou rotina de envio das respostas. As bibliotecas de interface são carregadas por CDNs.</p>
+        </div>
+        <div class="glass rounded-3xl p-6">
+          <div class="eyebrow">Os quatro pilares</div>
+          <div class="mt-4 space-y-4">
+            <div class="flex gap-3"><span class="pillar-icon shrink-0"><i data-lucide="cloud" class="h-5 w-5"></i></span><div><div class="text-sm font-semibold text-slate-200">Infraestrutura e nuvem</div><div class="text-xs leading-5 text-slate-500">Cloud, backup, disponibilidade e continuidade.</div></div></div>
+            <div class="flex gap-3"><span class="pillar-icon shrink-0"><i data-lucide="workflow" class="h-5 w-5"></i></span><div><div class="text-sm font-semibold text-slate-200">Sistemas e dados</div><div class="text-xs leading-5 text-slate-500">ERP, CRM, integração e qualidade de dados.</div></div></div>
+            <div class="flex gap-3"><span class="pillar-icon shrink-0"><i data-lucide="sparkles" class="h-5 w-5"></i></span><div><div class="text-sm font-semibold text-slate-200">IA e automação</div><div class="text-xs leading-5 text-slate-500">Produtividade, low-code e IA generativa segura.</div></div></div>
+            <div class="flex gap-3"><span class="pillar-icon shrink-0"><i data-lucide="lock-keyhole" class="h-5 w-5"></i></span><div><div class="text-sm font-semibold text-slate-200">Governança e segurança</div><div class="text-xs leading-5 text-slate-500">LGPD, identidade, acessos e uso responsável.</div></div></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section id="resultsSection" class="mt-12 hidden scroll-mt-6">
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><div class="eyebrow">02 / Resultado do diagnóstico</div><h2 class="mt-2 text-3xl font-black text-white">Painel de maturidade digital</h2><p id="reportCompanyLine" class="mt-2 text-sm text-slate-400"></p></div>
+        <div class="no-print flex flex-wrap gap-2">
+          <button id="editButton" class="btn-secondary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"><i data-lucide="pencil" class="h-4 w-4"></i> Ajustar respostas</button>
+          <button id="printButton" class="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold"><i data-lucide="printer" class="h-4 w-4"></i> Imprimir / Exportar PDF</button>
+        </div>
+      </div>
+      <div id="resultsContent">
+        <div class="print-only mb-5 border-b border-slate-300 pb-4"><div class="text-2xl font-black">RESOLUX <span class="font-normal text-cyan-700">/ Laudo Técnico</span></div><p class="mt-1 text-sm">Relatório de Boas Práticas e Maturidade Digital</p><p id="printMetadata" class="mt-2 text-xs text-slate-500"></p></div>
+        <div class="grid gap-4 lg:grid-cols-[.82fr_1.18fr]">
+          <div class="metric-card flex flex-col justify-between p-6 sm:p-7">
+            <div><div class="eyebrow">Score geral de prontidão</div><div class="mt-4 flex items-end gap-2"><span id="overallScore" class="text-6xl font-black tracking-tighter text-white">—</span><span class="pb-2 text-xl font-semibold text-slate-400">%</span></div><div class="mt-4 progress-track"><div id="overallProgress" class="progress-fill" style="width:0%;background:linear-gradient(90deg,#4dd7e8,#648bff)"></div></div><div class="mt-4"><span id="overallBadge" class="tag">Aguardando avaliação</span></div></div>
+            <p id="overallSummary" class="mt-6 text-sm leading-6 text-slate-400"></p>
+          </div>
+          <div class="metric-card p-5 sm:p-6"><div class="flex items-center justify-between gap-3"><div><div class="eyebrow">Visão comparativa</div><h3 class="mt-1 text-lg font-bold text-white">Desempenho por pilar</h3></div><span class="tag">Escala 0–100</span></div><div class="chart-wrap mt-3"><canvas id="pillarChart" aria-label="Gráfico comparativo de maturidade por pilar"></canvas></div></div>
+        </div>
+        <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" id="pillarCards"></div>
+        <div class="mt-10">
+          <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><div class="eyebrow">03 / Recomendações técnicas</div><h3 class="mt-2 text-2xl font-black text-white">Plano de Boas Práticas do Especialista</h3><p class="mt-2 text-sm text-slate-400">Ações sugeridas conforme a pontuação observada em cada pilar.</p></div><span class="tag"><i data-lucide="list-checks" class="h-3.5 w-3.5"></i> Plano orientativo</span></div>
+          <div id="recommendationsGrid" class="grid gap-4 lg:grid-cols-2"></div>
+        </div>
+        <div class="mt-8 rounded-2xl border border-cyan-300/15 bg-cyan-300/5 p-5">
+          <div class="flex gap-3"><i data-lucide="clipboard-list" class="mt-0.5 h-5 w-5 shrink-0 text-cyan-200"></i><div><h4 class="font-bold text-cyan-100">Escopo e interpretação do laudo</h4><p class="mt-1 text-sm leading-6 text-slate-300">Este diagnóstico é uma ferramenta orientativa de autoavaliação, baseada exclusivamente nas respostas fornecidas. Não substitui auditoria técnica, análise jurídica, testes de segurança, inventário de ativos ou avaliação formal de conformidade com a LGPD. Antes de executar mudanças, valide requisitos, riscos, custos, contratos, criticidade dos sistemas e capacidade operacional.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="emptyState" class="empty-state mt-8 rounded-3xl px-6 py-12 text-center">
+      <div class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-cyan-300/10 text-cyan-200"><i data-lucide="chart-no-axes-combined" class="h-8 w-8"></i></div>
+      <h3 class="mt-5 text-xl font-bold text-white">Seu diagnóstico começa aqui</h3>
+      <p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-400">Responda às oito questões ou carregue o caso de demonstração para visualizar o dashboard e o plano técnico completo.</p>
+      <button id="emptyDemoButton" class="btn-secondary no-print mt-5 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold"><i data-lucide="play" class="h-4 w-4"></i> Experimentar demonstração</button>
+    </section>
+  </main>
+
+  <footer class="mt-12 border-t border-slate-700/50">
+    <div class="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-7 text-sm sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-10">
+      <div><div class="font-black tracking-wide text-white">resolux<span class="text-cyan-300">.</span></div><p class="mt-1 text-xs text-slate-500">Tecnologia, processos e decisões orientadas por dados.</p></div>
+      <div class="privacy-note flex max-w-2xl items-start gap-2 text-xs leading-5 text-slate-400"><i data-lucide="shield-check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-300"></i><span><strong class="text-emerald-200">Privacy by Design (LGPD):</strong> Todos os cálculos são processados localmente no seu navegador. As respostas não são enviadas a um servidor por este aplicativo.</span></div>
+      <div class="text-xs text-slate-500 lg:text-right"><div>© <span id="currentYear"></span> Resolux</div><div class="mt-1">Créditos: Equipe Técnica Resolux · Engenharia de Software e Transformação Digital</div></div>
+    </div>
+  </footer>
+
+  <script>
+    'use strict';
+
+    const PILLARS = [
+      {
+        id: 'infrastructure', title: 'Infraestrutura Digital e Nuvem', short: 'Infraestrutura e nuvem', icon: 'cloud', color: '#4dd7e8',
+        questions: [
+          { id: 'q1', title: 'Como a empresa utiliza serviços de nuvem (IaaS, PaaS e SaaS)?', hint: 'Considere hospedagem, sistemas, armazenamento e estratégia de migração.', options: [
+            'A operação depende de equipamentos locais, sem estratégia ou inventário de migração.',
+            'Alguns serviços SaaS são usados, mas sem critérios claros de arquitetura, custo ou responsabilidade.',
+            'Há serviços em nuvem ou ambiente híbrido planejado, com responsáveis e critérios de seleção.',
+            'A arquitetura é documentada e governada; IaaS, PaaS e SaaS são escolhidos conforme requisitos, custo, segurança e disponibilidade.'
+          ] },
+          { id: 'q2', title: 'Como são realizados backup, recuperação e continuidade?', hint: 'Considere a regra 3-2-1, testes de restauração, RPO, RTO e disponibilidade.', options: [
+            'Não há rotina confiável de backup ou a capacidade de recuperação é desconhecida.',
+            'Existem cópias periódicas, mas ficam concentradas no mesmo ambiente ou não são testadas.',
+            'Há cópia externa e rotina documentada; testes de restauração e metas de recuperação são parciais.',
+            'A estratégia 3-2-1 é aplicada, com cópia offline ou imutável, testes periódicos e RPO/RTO definidos.'
+          ] }
+        ]
+      },
+      {
+        id: 'systems', title: 'Sistemas Empresariais e Fluxo de Dados', short: 'Sistemas e dados', icon: 'workflow', color: '#8b9cff',
+        questions: [
+          { id: 'q3', title: 'Como os sistemas ERP, CRM e demais aplicações compartilham informações?', hint: 'Considere integração, APIs, sincronização e retrabalho entre departamentos.', options: [
+            'Os sistemas são isolados e as informações são redigitadas ou trocadas manualmente.',
+            'A integração ocorre principalmente por planilhas, arquivos exportados ou processos pontuais.',
+            'Os sistemas principais possuem integrações parciais e fluxos padronizados para dados críticos.',
+            'ERP, CRM e aplicações relevantes integram-se por APIs ou conectores governados, com monitoramento e tratamento de falhas.'
+          ] },
+          { id: 'q4', title: 'Como a empresa controla planilhas paralelas e a qualidade dos dados?', hint: 'Considere fonte oficial, padronização, responsáveis e indicadores compartilhados.', options: [
+            'Há múltiplas versões de planilhas, dados conflitantes e ausência de responsáveis definidos.',
+            'Existem controles locais, mas ainda há duplicidade e dificuldade para identificar a fonte correta.',
+            'Dados importantes têm padrões, responsáveis e relatórios compartilhados, embora existam silos residuais.',
+            'Há governança de dados, definições comuns, responsáveis e indicadores rastreáveis em fontes confiáveis.'
+          ] }
+        ]
+      },
+      {
+        id: 'automation', title: 'IA Generativa e Automação No-Code', short: 'IA e automação', icon: 'sparkles', color: '#c39aff',
+        questions: [
+          { id: 'q5', title: 'Qual é o nível de automação das tarefas repetitivas?', hint: 'Considere formulários, aprovações, notificações e integração entre ferramentas.', options: [
+            'A maior parte das tarefas é manual, depende de e-mails e não possui fluxo padronizado.',
+            'Há macros, modelos ou automações isoladas, sem integração ou monitoramento consistente.',
+            'Ferramentas low-code/no-code automatizam processos definidos, com responsáveis e tratamento básico de erros.',
+            'Fluxos integrados são monitorados, documentados e medidos; exceções e permissões são controladas.'
+          ] },
+          { id: 'q6', title: 'Como a empresa utiliza IA generativa de forma produtiva e segura?', hint: 'Considere ferramentas aprovadas, dados enviados, revisão humana e critérios de qualidade.', options: [
+            'Não há uso estruturado nem orientação para colaboradores sobre os riscos da IA.',
+            'O uso é individual e ad hoc, sem regras claras sobre dados confidenciais ou validação de resultados.',
+            'Há ferramentas aprovadas e orientações básicas; resultados relevantes passam por revisão humana.',
+            'Os casos de uso têm avaliação de risco, proteção de dados, revisão humana, métricas e monitoramento contínuo.'
+          ] }
+        ]
+      },
+      {
+        id: 'governance', title: 'Governança, Ética e Segurança da Informação', short: 'Governança e segurança', icon: 'shield-check', color: '#43d7a2',
+        questions: [
+          { id: 'q7', title: 'Como a empresa trata privacidade e obrigações relacionadas à LGPD?', hint: 'Considere inventário de dados pessoais, finalidade, base legal, transparência e direitos dos titulares.', options: [
+            'A empresa não conhece bem os dados pessoais que trata nem possui responsáveis ou procedimentos definidos.',
+            'Existem iniciativas pontuais, mas o inventário, as bases legais e os avisos de privacidade são incompletos.',
+            'Os principais tratamentos estão mapeados, com responsáveis, controles e procedimentos para solicitações.',
+            'A governança é contínua: registros atualizados, avaliação de riscos, retenção, contratos e resposta a titulares e incidentes.'
+          ] },
+          { id: 'q8', title: 'Como são gerenciados identidades, acessos e incidentes de segurança?', hint: 'Considere MFA, privilégio mínimo, contas individuais, logs e resposta a incidentes.', options: [
+            'Há contas compartilhadas, senhas frágeis ou ausência de controle centralizado de acesso.',
+            'MFA e controles existem apenas em alguns sistemas; revisões e revogações são irregulares.',
+            'MFA é aplicado aos sistemas críticos, permissões seguem funções e acessos são revisados periodicamente.',
+            'Há gestão centralizada de identidades, privilégio mínimo, logs, resposta a incidentes e testes de segurança.'
+          ] }
+        ]
+      }
+    ];
+
+    const DEMO = {
+      name: 'Aurora Comércio e Serviços', sector: 'Comércio / Varejo', size: 'Pequena empresa',
+      answers: { q1: 2, q2: 1, q3: 1, q4: 2, q5: 2, q6: 1, q7: 2, q8: 1 }
+    };
+
+    const recommendationLibrary = {
+      infrastructure: {
+        low: [
+          ['Inventário e classificação de ativos', 'Mapeie servidores, computadores, sistemas, dados, dependências e responsáveis. Classifique criticidade e requisitos de disponibilidade antes de escolher o que migrar.'],
+          ['Estratégia de nuvem por carga de trabalho', 'Compare IaaS, PaaS e SaaS conforme controle necessário, competências internas, custo total, segurança e dependência do fornecedor. Comece por uma aplicação de baixo risco em piloto.'],
+          ['Backup e recuperação prioritários', 'Implemente a regra 3-2-1: três cópias, em dois tipos de mídia, com uma cópia externa. Proteja ao menos uma cópia contra alteração e teste restaurações; defina RPO e RTO para os sistemas críticos.']
+        ],
+        mid: [
+          ['Formalizar arquitetura e governança cloud', 'Documente quais cargas permanecem locais, migram para IaaS, usam PaaS ou são substituídas por SaaS. Defina responsáveis, orçamento, tags, política de acesso e revisão de custos.'],
+          ['Elevar resiliência e observabilidade', 'Automatize verificações de backup, monitore disponibilidade e capacidade e execute testes de restauração e continuidade em calendário definido.'],
+          ['Planejar migrações em ondas', 'Priorize aplicações por valor, risco e dependências. Execute piloto, teste desempenho e segurança, planeje rollback e acompanhe custos após cada onda.']
+        ],
+        high: [
+          ['Otimização FinOps e arquitetura', 'Revise consumo, dimensionamento, compromissos de uso e custos de transferência. Compare custo total de propriedade e evite dependências desnecessárias de serviços proprietários.'],
+          ['Testes avançados de continuidade', 'Realize exercícios de recuperação e indisponibilidade, valide RPO/RTO com as áreas de negócio e registre evidências e planos de correção.'],
+          ['Padronizar infraestrutura como código', 'Avalie infraestrutura como código, políticas automatizadas, gestão de configuração e observabilidade para reduzir desvios e acelerar entregas com rastreabilidade.']
+        ]
+      },
+      systems: {
+        low: [
+          ['Mapear processos e fontes oficiais', 'Desenhe o caminho de pedidos, clientes, estoque, faturamento e atendimento. Defina qual sistema será a fonte oficial de cada dado e elimine redigitação prioritária.'],
+          ['Criar integração controlada ERP–CRM', 'Identifique campos e eventos necessários. Comece com uma integração pequena via API ou conector confiável, com autenticação, logs, validação e reconciliação de erros.'],
+          ['Reduzir planilhas paralelas', 'Padronize cadastros, responsáveis, permissões e modelos. Mantenha planilhas apenas quando justificadas, com controle de versão e prazo para revisão.']
+        ],
+        mid: [
+          ['Ampliar integração e monitoramento', 'Priorize dados mestres e fluxos críticos entre ERP, CRM, e-commerce e atendimento. Implemente alertas, filas de erro, reprocessamento e conciliação.'],
+          ['Estabelecer governança de dados', 'Defina responsáveis por domínio, dicionário de dados, regras de qualidade, identificadores únicos e processo para corrigir duplicidades.'],
+          ['Consolidar indicadores operacionais', 'Crie painéis com conceitos padronizados e origem rastreável. Valide periodicidade, qualidade e regras de cálculo com as áreas usuárias.']
+        ],
+        high: [
+          ['Evoluir para arquitetura orientada a eventos', 'Avalie APIs versionadas, mensageria e eventos para reduzir acoplamento. Defina contratos de dados, idempotência, segurança e observabilidade ponta a ponta.'],
+          ['Automatizar qualidade e linhagem', 'Implemente verificações automáticas, catálogo, rastreabilidade de origem e alertas sobre alterações que impactem relatórios ou integrações.'],
+          ['Medir valor das integrações', 'Acompanhe redução de retrabalho, latência, falhas e divergências. Reavalie integrações críticas e mantenha plano de contingência para indisponibilidade.']
+        ]
+      },
+      automation: {
+        low: [
+          ['Selecionar processos repetitivos de baixo risco', 'Liste tarefas frequentes, volume, tempo gasto e taxa de erro. Escolha um processo simples, com regras claras e benefício mensurável para um primeiro piloto no-code.'],
+          ['Criar automações com controles', 'Use formulários, validação de campos, criação de tarefas e notificações. Registre quem iniciou a ação, trate falhas e mantenha aprovação humana para decisões relevantes.'],
+          ['Definir política de uso de IA generativa', 'Oriente a equipe a não inserir dados pessoais, segredos comerciais ou credenciais em ferramentas não aprovadas. Exija checagem humana de fatos, cálculos e conteúdo gerado.']
+        ],
+        mid: [
+          ['Integrar automações aos sistemas', 'Conecte fluxos low-code/no-code a ERP, CRM e ferramentas corporativas por conectores autorizados. Use contas de serviço, permissões mínimas e logs de execução.'],
+          ['Implantar governança de IA', 'Catalogue casos de uso, dados permitidos, riscos, responsáveis e critérios de aprovação. Defina revisão humana para decisões que afetem clientes, colaboradores ou direitos.'],
+          ['Medir produtividade com qualidade', 'Acompanhe tempo economizado, taxa de erro, retrabalho, satisfação e custo operacional. Interrompa automações que gerem efeitos adversos ou não atinjam critérios definidos.']
+        ],
+        high: [
+          ['Orquestrar processos ponta a ponta', 'Combine automações com APIs, filas, tratamento de exceções, trilhas de auditoria e observabilidade. Separe tarefas determinísticas de etapas que exigem julgamento humano.'],
+          ['Avaliar IA com critérios formais', 'Mantenha conjunto de testes, avaliação de precisão, vieses e alucinações, monitoramento de mudanças e processo de revisão de prompts e modelos.'],
+          ['Escalar com gestão de risco', 'Estabeleça catálogo corporativo de soluções, aprovação de novos casos, gestão de fornecedores e plano de contingência quando IA ou automações ficarem indisponíveis.']
+        ]
+      },
+      governance: {
+        low: [
+          ['Iniciar inventário de dados pessoais', 'Identifique quais dados pessoais são coletados, finalidade, origem, compartilhamentos, prazo de retenção e responsáveis. Avalie a hipótese de base legal aplicável com apoio jurídico ou do encarregado.'],
+          ['Proteger identidades e contas', 'Ative MFA prioritariamente em e-mail, nuvem, sistemas financeiros e acessos administrativos. Elimine contas compartilhadas e adote senhas únicas com gerenciador aprovado.'],
+          ['Definir controles mínimos de segurança', 'Aplique privilégio mínimo, atualização de sistemas, criptografia adequada, cópias protegidas e procedimento para comunicar e tratar incidentes.']
+        ],
+        mid: [
+          ['Formalizar programa de privacidade', 'Mantenha registros das operações de tratamento, avisos de privacidade, contratos com operadores, canal para titulares e processo de retenção e descarte. Documente decisões e riscos.'],
+          ['Fortalecer ciclo de acesso', 'Adote grupos por função, aprovação de acessos, revisão periódica e revogação imediata em desligamentos ou mudanças de função. Registre atividades privilegiadas.'],
+          ['Exercitar resposta a incidentes', 'Defina responsáveis, classificação, contenção, preservação de evidências e critérios de comunicação. Simule cenários envolvendo perda de dispositivo, ransomware e exposição de dados.']
+        ],
+        high: [
+          ['Aprimorar gestão contínua de riscos', 'Realize avaliações periódicas de impacto e risco para tratamentos relevantes, fornecedores e novos produtos. Acompanhe planos de ação e evidências de controles.'],
+          ['Adotar monitoramento e detecção', 'Correlacione logs de identidade, endpoints e serviços críticos; estabeleça alertas, retenção, revisão de privilégios e testes controlados de segurança.'],
+          ['Governar IA e terceiros por privacidade', 'Avalie contratos, localização e retenção de dados, uso para treinamento, suboperadores e mecanismos de exclusão. Documente critérios de aprovação e supervisão humana.']
+        ]
+      }
+    };
+
+    const questionContainer = document.getElementById('questionsContainer');
+    let currentChart = null;
+    let latestReport = null;
+
+    function renderQuestions() {
+      questionContainer.innerHTML = PILLARS.map((pillar, pillarIndex) => `
+        <section aria-labelledby="heading-${pillar.id}">
+          <div class="mb-3 flex items-center gap-3">
+            <span class="pillar-icon"><i data-lucide="${pillar.icon}" class="h-5 w-5"></i></span>
+            <div><div class="eyebrow">Pilar ${pillarIndex + 1} de 4</div><h3 id="heading-${pillar.id}" class="font-bold text-white">${pillar.title}</h3></div>
+          </div>
+          <div class="space-y-3">
+            ${pillar.questions.map((question, questionIndex) => `
+              <fieldset class="question-card">
+                <legend class="mb-2 text-sm font-semibold leading-6 text-slate-100">${question.title}</legend>
+                <p class="mb-3 text-xs leading-5 text-slate-500">${question.hint}</p>
+                <div class="space-y-2">
+                  ${question.options.map((option, score) => `
+                    <label class="option-label">
+                      <input type="radio" name="${question.id}" value="${score}" />
+                      <span class="min-w-0"><span class="mr-2 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-slate-700/70 px-1 text-[.68rem] font-bold text-cyan-200">${score}</span><span class="text-xs leading-5 text-slate-300">${option}</span></span>
+                    </label>
+                  `).join('')}
+                </div>
+              </fieldset>
+            `).join('')}
+          </div>
+        </section>
+      `).join('');
+      refreshIcons();
+    }
+
+    function refreshIcons() {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    }
+
+    function getClassification(score) {
+      if (score < 40) return { label: 'Crítico', className: 'status-critical', summary: 'A empresa apresenta lacunas importantes. Priorize fundamentos, redução de riscos e controles mínimos antes de ampliar a complexidade tecnológica.' };
+      if (score < 60) return { label: 'Em Transição', className: 'status-transition', summary: 'Há iniciativas em andamento, mas ainda existem fragilidades e práticas pouco integradas. Organize prioridades e formalize processos para ganhar consistência.' };
+      if (score < 80) return { label: 'Estruturado', className: 'status-structured', summary: 'A base digital demonstra consistência. O próximo passo é ampliar integração, monitoramento, governança e mensuração de resultados.' };
+      return { label: 'Líder Digital', className: 'status-leader', summary: 'A avaliação indica práticas maduras nos quatro pilares. Mantenha melhoria contínua, testes, gestão de riscos e revisão periódica de resultados.' };
+    }
+
+    function getBand(score) {
+      if (score < 40) return 'low';
+      if (score < 70) return 'mid';
+      return 'high';
+    }
+
+    function calculateReport(answers) {
+      const pillars = PILLARS.map(pillar => {
+        const values = pillar.questions.map(question => Number(answers[question.id]));
+        const points = values.reduce((sum, value) => sum + value, 0);
+        const score = Math.round((points / (pillar.questions.length * 3)) * 100);
+        return { ...pillar, points, maxPoints: pillar.questions.length * 3, score, classification: getClassification(score) };
+      });
+      const overall = Math.round(pillars.reduce((sum, pillar) => sum + pillar.score, 0) / pillars.length);
+      return { pillars, overall, classification: getClassification(overall), answers, generatedAt: new Date() };
+    }
+
+    function collectAnswers() {
+      const answers = {};
+      for (const pillar of PILLARS) {
+        for (const question of pillar.questions) {
+          const selected = document.querySelector(`input[name="${question.id}"]:checked`);
+          if (!selected) return { valid: false, missing: question.id };
+          answers[question.id] = Number(selected.value);
+        }
+      }
+      return { valid: true, answers };
+    }
+
+    function validateCompany() {
+      const name = document.getElementById('companyName').value.trim();
+      const sector = document.getElementById('companySector').value;
+      const size = document.getElementById('companySize').value;
+      if (!name || !sector || !size) {
+        return { valid: false, message: 'Preencha o nome, o setor e o porte da empresa antes de gerar o diagnóstico.' };
+      }
+      return { valid: true, company: { name, sector, size } };
+    }
+
+    function makeRecommendationCard(item, index) {
+      const priority = index === 0 ? 'Prioridade recomendada' : (index === 1 ? 'Próxima etapa' : 'Evolução complementar');
+      return `<div class="recommendation">
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2"><span class="tag">${priority}</span><span class="text-[.68rem] font-semibold uppercase tracking-wider text-slate-500">Ação ${index + 1}</span></div>
+        <h5 class="font-bold text-slate-100">${item[0]}</h5>
+        <p class="mt-2 text-sm leading-6 text-slate-400">${item[1]}</p>
+      </div>`;
+    }
+
+    function renderRecommendations(report) {
+      const grid = document.getElementById('recommendationsGrid');
+      grid.innerHTML = report.pillars.map(pillar => {
+        const band = getBand(pillar.score);
+        const items = recommendationLibrary[pillar.id][band];
+        const levelText = band === 'low' ? 'Base e controles essenciais' : band === 'mid' ? 'Padronização e integração' : 'Otimização e escala';
+        return `<article class="glass rounded-2xl p-5">
+          <div class="mb-4 flex items-start justify-between gap-3"><div class="flex items-center gap-3"><span class="pillar-icon"><i data-lucide="${pillar.icon}" class="h-5 w-5"></i></span><div><h4 class="font-bold text-white">${pillar.short}</h4><p class="mt-1 text-xs text-slate-500">${levelText}</p></div></div><span class="text-xl font-black" style="color:${pillar.color}">${pillar.score}%</span></div>
+          ${items.map(makeRecommendationCard).join('')}
+        </article>`;
+      }).join('');
+    }
+
+    function renderPillarCards(report) {
+      const container = document.getElementById('pillarCards');
+      container.innerHTML = report.pillars.map(pillar => `
+        <article class="metric-card p-5">
+          <div class="flex items-center justify-between gap-2"><span class="pillar-icon"><i data-lucide="${pillar.icon}" class="h-5 w-5"></i></span><span class="tag ${pillar.classification.className}">${pillar.classification.label}</span></div>
+          <div class="mt-5 text-sm font-semibold text-slate-300">${pillar.short}</div>
+          <div class="mt-1 flex items-baseline gap-1"><span class="text-3xl font-black text-white">${pillar.score}</span><span class="text-sm text-slate-500">/ 100</span></div>
+          <div class="mt-3 progress-track"><div class="progress-fill" style="width:${pillar.score}%;background:${pillar.color}"></div></div>
+          <p class="mt-3 text-xs text-slate-500">${pillar.points} de ${pillar.maxPoints} pontos nas duas questões.</p>
+        </article>
+      `).join('');
+    }
+
+    function renderChart(report) {
+      const canvas = document.getElementById('pillarChart');
+      const chartFallback = document.getElementById('chartFallback');
+      if (currentChart) currentChart.destroy();
+      if (typeof Chart === 'undefined') {
+        canvas.style.display = 'none';
+        if (!chartFallback) {
+          const fallback = document.createElement('p');
+          fallback.id = 'chartFallback';
+          fallback.className = 'rounded-xl bg-slate-900 p-5 text-sm leading-6 text-slate-300';
+          fallback.textContent = 'Não foi possível carregar o gráfico. Confira a conexão com a CDN do Chart.js; as notas e recomendações continuam disponíveis.';
+          canvas.parentElement.appendChild(fallback);
+        }
+        return;
+      }
+      canvas.style.display = 'block';
+      if (chartFallback) chartFallback.remove();
+      currentChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: report.pillars.map(p => p.short),
+          datasets: [{ label: 'Maturidade (%)', data: report.pillars.map(p => p.score), backgroundColor: report.pillars.map(p => p.color + 'B8'), borderColor: report.pillars.map(p => p.color), borderWidth: 1.5, borderRadius: 8, maxBarThickness: 52 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => ` ${context.parsed.x}% de maturidade` } } },
+          scales: {
+            x: { min: 0, max: 100, grid: { color: 'rgba(148,163,184,.12)' }, ticks: { color: '#94a3b8', stepSize: 20, callback: value => value + '%' } },
+            y: { grid: { display: false }, ticks: { color: '#cbd5e1', font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function renderReport(report, company) {
+      latestReport = { ...report, company };
+      const overall = document.getElementById('overallScore');
+      overall.textContent = report.overall;
+      document.getElementById('overallProgress').style.width = report.overall + '%';
+      const badge = document.getElementById('overallBadge');
+      badge.className = `tag ${report.classification.className}`;
+      badge.textContent = report.classification.label;
+      document.getElementById('overallSummary').textContent = report.classification.summary;
+      document.getElementById('reportCompanyLine').textContent = `${company.name} · ${company.sector} · ${company.size}`;
+      document.getElementById('printMetadata').textContent = `Empresa: ${company.name} | Setor: ${company.sector} | Porte: ${company.size} | Emitido em: ${report.generatedAt.toLocaleString('pt-BR')}`;
+      renderPillarCards(report);
+      renderChart(report);
+      renderRecommendations(report);
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('printButtonTop').disabled = false;
+      refreshIcons();
+    }
+
+    function runDiagnosis() {
+      const errorElement = document.getElementById('formError');
+      const companyResult = validateCompany();
+      if (!companyResult.valid) {
+        errorElement.textContent = companyResult.message;
+        errorElement.classList.remove('hidden');
+        document.getElementById('companyName').focus();
+        return;
+      }
+      const answerResult = collectAnswers();
+      if (!answerResult.valid) {
+        const question = PILLARS.flatMap(p => p.questions).find(q => q.id === answerResult.missing);
+        errorElement.textContent = `Responda todas as questões. Falta selecionar uma alternativa para: “${question.title}”`;
+        errorElement.classList.remove('hidden');
+        document.querySelector(`input[name="${answerResult.missing}"]`)?.closest('fieldset')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      errorElement.classList.add('hidden');
+      const report = calculateReport(answerResult.answers);
+      renderReport(report, companyResult.company);
+      document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function loadDemo() {
+      document.getElementById('companyName').value = DEMO.name;
+      document.getElementById('companySector').value = DEMO.sector;
+      document.getElementById('companySize').value = DEMO.size;
+      for (const [questionId, score] of Object.entries(DEMO.answers)) {
+        const input = document.querySelector(`input[name="${questionId}"][value="${score}"]`);
+        if (input) input.checked = true;
+      }
+      document.getElementById('formError').classList.add('hidden');
+      runDiagnosis();
+    }
+
+    function printReport() {
+      if (!latestReport) {
+        alert('Gere um diagnóstico antes de exportar o laudo.');
+        return;
+      }
+      window.print();
+    }
+
+    document.getElementById('runDiagnosisButton').addEventListener('click', runDiagnosis);
+    document.getElementById('demoButton').addEventListener('click', loadDemo);
+    document.getElementById('emptyDemoButton').addEventListener('click', loadDemo);
+    document.getElementById('printButton').addEventListener('click', printReport);
+    document.getElementById('printButtonTop').addEventListener('click', printReport);
+    document.getElementById('editButton').addEventListener('click', () => document.getElementById('assessmentSection').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    renderQuestions();
+    refreshIcons();
+  </script>
+</body>
+</html>
